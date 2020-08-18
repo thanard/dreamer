@@ -15,6 +15,8 @@ class DeepMindControl:
     domain, task = name.split('_', 1)
     if domain == 'cup':  # Only domain with multiple words.
       domain = 'ball_in_cup'
+    elif domain == 'maze':
+      domain = 'simple_maze'
     if isinstance(domain, str):
       from dm_control import suite
       self._env = suite.load(domain, task)
@@ -48,6 +50,8 @@ class DeepMindControl:
     reward = time_step.reward or 0
     done = time_step.last()
     info = {'discount': np.array(time_step.discount, np.float32)}
+    if hasattr(self._env.task, 'is_goal'):
+      info['is_goal'] = self._env.task.is_goal(self._env.physics)
     return obs, reward, done, info
 
   def reset(self):
@@ -163,6 +167,7 @@ class Collect:
     obs = {k: self._convert(v) for k, v in obs.items()}
     transition = obs.copy()
     transition['action'] = action
+    transition['is_goal'] = info.get('is_goal', False)
     transition['reward'] = reward
     transition['discount'] = info.get('discount', np.array(1 - float(done)))
     self._episode.append(transition)
@@ -180,6 +185,7 @@ class Collect:
     transition['action'] = np.zeros(self._env.action_space.shape)
     transition['reward'] = 0.0
     transition['discount'] = 1.0
+    transition['is_goal'] = False
     self._episode = [transition]
     return obs
 
@@ -191,6 +197,8 @@ class Collect:
       dtype = {16: np.int16, 32: np.int32, 64: np.int64}[self._precision]
     elif np.issubdtype(value.dtype, np.uint8):
       dtype = np.uint8
+    elif np.issubdtype(value.dtype, np.bool):
+      dtype = np.bool
     else:
       raise NotImplementedError(value.dtype)
     return value.astype(dtype)

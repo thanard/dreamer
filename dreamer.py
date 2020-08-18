@@ -360,6 +360,7 @@ def summarize_episode(episode, config, datadir, writer, prefix):
   ret = episode['reward'].sum()
   print(f'{prefix.title()} episode of length {length} with return {ret:.1f}.')
   metrics = [
+      (f'{prefix}/success', float(episode['is_goal'].any())),
       (f'{prefix}/return', float(episode['reward'].sum())),
       (f'{prefix}/length', len(episode['reward']) - 1),
       (f'episodes', episodes)]
