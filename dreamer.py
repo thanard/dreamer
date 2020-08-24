@@ -42,7 +42,7 @@ def define_config():
   config.envs = 1
   config.parallel = 'none'
   config.action_repeat = 2
-  config.time_limit = 1000
+  config.time_limit = 200
   config.prefill = 5000
   config.eval_noise = 0.0
   config.clip_rewards = 'none'
@@ -376,7 +376,11 @@ def summarize_episode(episode, config, datadir, writer, prefix):
 
 def make_env(config, writer, prefix, datadir, store):
   suite, task = config.task.split('_', 1)
-  if suite == 'dmc':
+  if suite == 'kitchen':
+    env = wrappers.Kitchen2D(task)
+    env = wrappers.ActionRepeat(env, config.action_repeat)
+    env = wrappers.NormalizeActions(env)
+  elif suite == 'dmc':
     env = wrappers.DeepMindControl(task)
     env = wrappers.ActionRepeat(env, config.action_repeat)
     env = wrappers.NormalizeActions(env)

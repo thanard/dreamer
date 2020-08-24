@@ -3,10 +3,81 @@ import functools
 import sys
 import threading
 import traceback
+import os
 
 import gym
 import numpy as np
+from kitchen2d.multi_cups import MultiCups, MultiCupsFaucet, compute_metric
 from PIL import Image
+
+class Kitchen2D:
+
+  def __init__(self, name, size=(64, 64), debug=False):
+    self.debug = debug
+    os.environ['SDL_VIDEODRIVER'] = 'dummy'
+    if name == 'multicups':
+      self._env = MultiCups('v2')
+    else:
+      assert name == 'multicups_faucet'
+      self._env = MultiCupsFaucet('v2')
+    self._size = size
+
+    self._goal_liquid_state = 'all_in_cup1'
+    self._reset_goal = False
+    if not self._reset_goal:
+      self._goal_x = np.array([ 0.5, -9.,  9.,  np.pi/3,  4.,
+                                4.,  4.,  4.,  4.,  4.,
+                                -8.,  8.,  8.])
+      self._env.reset(self._goal_x.copy(),
+                      liquid_state=self._goal_liquid_state).copy()
+      self._goal = self.render()
+    if self.debug:
+      print('saving goal')
+      import matplotlib.pyplot as plt
+      plt.imsave('/tmp/goal.png', self._goal)
+
+  @property
+  def observation_space(self):
+    spaces = {}
+    spaces['image'] = gym.spaces.Box(
+      0, 255, self._size + (3,), dtype=np.uint8)
+    return gym.spaces.Dict(spaces)
+
+  @property
+  def action_space(self):
+    spec = np.array([1.0, 0.0, 0.1])
+    return gym.spaces.Box(-spec, spec, dtype=np.float64)
+
+  def step(self, action):
+    self._env.step(action)
+    obs = {}
+    obs['image'] = self.render()
+    reward = compute_metric(obs['image'], self._goal,
+                            'pixel_l2_goal_overlap')
+    done = False
+    info = {}
+    if self.debug:
+      print('saving current step')
+      import matplotlib.pyplot as plt
+      plt.imsave('/tmp/current.png', obs['image'])
+    return obs, reward, done, info
+
+  def reset(self):
+    if self._reset_goal:
+      self._goal_x = self._env.reset(liquid_state=self._goal_liquid_state)
+      self._goal = self.render()
+    start_x = self._env.sample_same_context(self._goal_x.copy())
+    self._env.reset(start_x)
+    obs = {}
+    obs['image'] = self.render()
+    if self.debug:
+      print('saving start image')
+      import matplotlib.pyplot as plt
+      plt.imsave('/tmp/start.png', obs['image'])
+    return obs
+
+  def render(self):
+    return self._env.render()
 
 
 class DeepMindControl:
