@@ -17,12 +17,16 @@ class Kitchen2D:
     os.environ['SDL_VIDEODRIVER'] = 'dummy'
     if name == 'multicups':
       self._env = MultiCups('v2')
+      self._goal_liquid_state = 'all_in_cup1'
+      self._is_goal = lambda: self._env.get_num_particles()[0]/500
     else:
       assert name == 'multicups_faucet'
       self._env = MultiCupsFaucet('v2')
+      self._goal_liquid_state = 'goal'
+      self._is_goal = lambda: np.mean(np.clip(self._env.get_num_particles()[0] / 250,0, 1))
+
     self._size = size
 
-    self._goal_liquid_state = 'all_in_cup1'
     self._reset_goal = False
     if not self._reset_goal:
       self._goal_x = np.array([ 0.5, -9.,  9.,  np.pi/3,  4.,
@@ -52,7 +56,7 @@ class Kitchen2D:
     self._env.step(action)
     obs = {}
     obs['image'] = self.render()
-    reward = compute_metric(obs['image'], self._goal,
+    reward = - compute_metric(obs['image'], self._goal,
                             'pixel_l2_goal_overlap')
     done = False
     info = {}
@@ -60,6 +64,7 @@ class Kitchen2D:
       print('saving current step')
       import matplotlib.pyplot as plt
       plt.imsave('/tmp/current.png', obs['image'])
+    info['is_goal'] = self._is_goal()
     return obs, reward, done, info
 
   def reset(self):

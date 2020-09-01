@@ -42,7 +42,7 @@ def define_config():
   config.envs = 1
   config.parallel = 'none'
   config.action_repeat = 2
-  config.time_limit = 200
+  config.time_limit = 50
   config.prefill = 5000
   config.eval_noise = 0.0
   config.clip_rewards = 'none'
@@ -360,7 +360,7 @@ def summarize_episode(episode, config, datadir, writer, prefix):
   ret = episode['reward'].sum()
   print(f'{prefix.title()} episode of length {length} with return {ret:.1f}.')
   metrics = [
-      (f'{prefix}/success', float(episode['is_goal'].any())),
+      (f'{prefix}/success', float(episode['is_goal'].max())),
       (f'{prefix}/return', float(episode['reward'].sum())),
       (f'{prefix}/length', len(episode['reward']) - 1),
       (f'episodes', episodes)]
@@ -395,8 +395,9 @@ def make_env(config, writer, prefix, datadir, store):
   callbacks = []
   if store:
     callbacks.append(lambda ep: tools.save_episodes(datadir, [ep]))
-  callbacks.append(
-      lambda ep: summarize_episode(ep, config, datadir, writer, prefix))
+  if config.parallel == 'test':
+    callbacks.append(
+        lambda ep: summarize_episode(ep, config, datadir, writer, prefix))
   env = wrappers.Collect(env, callbacks, config.precision)
   env = wrappers.RewardObs(env)
   return env
@@ -422,8 +423,8 @@ def main(config):
       config, writer, 'train', datadir, store=True), config.parallel)
       for _ in range(config.envs)]
   test_envs = [wrappers.Async(lambda: make_env(
-      config, writer, 'test', datadir, store=False), config.parallel)
-      for _ in range(config.envs)]
+      config, writer, 'test', datadir, store=False), 'none')
+      for _ in range(1)]
   actspace = train_envs[0].action_space
 
   # Prefill dataset with random episodes.
