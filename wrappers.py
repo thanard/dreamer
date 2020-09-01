@@ -19,11 +19,15 @@ class Kitchen2D:
       self._env = MultiCups('v2')
       self._goal_liquid_state = 'all_in_cup1'
       self._is_goal = lambda: self._env.get_num_particles()[0]/500
+    elif name == 'multicups_2cups':
+      self._env = MultiCups('v2')
+      self._goal_liquid_state = 'goal'
+      self._is_goal = lambda: np.mean(np.clip(self._env.get_num_particles()/250,0, 1))
     else:
       assert name == 'multicups_faucet'
       self._env = MultiCupsFaucet('v2')
       self._goal_liquid_state = 'goal'
-      self._is_goal = lambda: np.mean(np.clip(self._env.get_num_particles()[0] / 250,0, 1))
+      self._is_goal = lambda: np.mean(np.clip(self._env.get_num_particles()/250,0, 1))
 
     self._size = size
 

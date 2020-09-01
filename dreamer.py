@@ -395,7 +395,7 @@ def make_env(config, writer, prefix, datadir, store):
   callbacks = []
   if store:
     callbacks.append(lambda ep: tools.save_episodes(datadir, [ep]))
-  if config.parallel == 'test':
+  if prefix == 'test':
     callbacks.append(
         lambda ep: summarize_episode(ep, config, datadir, writer, prefix))
   env = wrappers.Collect(env, callbacks, config.precision)
