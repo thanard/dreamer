@@ -549,11 +549,12 @@ def make_stirrer(b2world_interface, pos, angle, w, h, d):
     return body
 
 
-def make_static_cup(b2world_interface, pos, angle, w, h, d):
+def make_static_cup(b2world_interface, pos, angle, w, h, d, shifth=0.0, user_data='cup'):
     '''
     Returns a static cup of width w, height h and thickness d,
     at position pos with orientation angle.
     '''
+    shift = np.array([w/2.0, shifth*h])
     world = b2world_interface.world
     body = world.CreateStaticBody(
         position=pos,
@@ -562,8 +563,10 @@ def make_static_cup(b2world_interface, pos, angle, w, h, d):
                 b2PolygonShape(vertices=[(0, d), (d, d), (d, h), (0, h)]),
                 b2PolygonShape(vertices=[(w, d), (w, h), (w-d, h), (w-d, d)])]
     )
-    body.userData = 'static_cup'
+    body.usr_w = w*1.0
+    body.usr_h = h*1.0
+    body.usr_d = d*1.0
+    body.shift = shift
+    body.userData = user_data
     return body
-
-
 
